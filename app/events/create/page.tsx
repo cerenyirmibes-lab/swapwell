@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { supabase } from '../../lib/supabase'
 import Link from 'next/link'
 
 const categories = [
@@ -29,10 +30,31 @@ export default function CreateEventPage() {
 
   const handleCreate = async () => {
     setLoading(true)
-    // Gerçek kayıt sonra eklenecek
-    setTimeout(() => {
-      router.push('/events')
-    }, 1000)
+    
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) {
+      router.push('/login')
+      return
+    }
+
+    const { error } = await supabase.from('events').insert({
+      organizer_id: user.id,
+      title,
+      description,
+      category,
+      location: `${location} — ${locationDetail}`,
+      event_date: `${date}T${time}`,
+      max_participants: maxParticipants,
+      credit_cost: creditCost,
+    })
+
+    if (error) {
+      alert(error.message)
+      setLoading(false)
+      return
+    }
+
+    router.push('/events')
   }
 
   return (
