@@ -2,7 +2,10 @@ import Link from 'next/link'
 import { supabase } from '../lib/supabase'
 
 export default async function EventsPage() {
-  const { data: events } = await supabase.from('events').select('*').order('event_date', { ascending: true })
+  const { data: events } = await supabase
+    .from('events')
+    .select('*')
+    .order('event_date', { ascending: true })
 
   return (
     <main className="min-h-screen bg-emerald-50">
@@ -22,6 +25,14 @@ export default async function EventsPage() {
           <Link href="/events/create" className="text-sm bg-emerald-600 text-white px-4 py-2 rounded-lg hover:bg-emerald-700">
             + Etkinlik oluştur
           </Link>
+        </div>
+
+        <div className="flex gap-2 overflow-x-auto mb-6">
+          {['Tümü', '⛵ Tekne/Yat', '🏋️ Fitness', '🧘 Wellness', '🌊 Su sporları', '🐴 Outdoor'].map((f, i) => (
+            <button key={i} className={`flex-shrink-0 text-sm px-4 py-2 rounded-full border transition-colors ${i === 0 ? 'bg-emerald-600 text-white border-emerald-600' : 'border-gray-200 text-gray-600 bg-white hover:border-emerald-400'}`}>
+              {f}
+            </button>
+          ))}
         </div>
 
         {events && events.length > 0 ? (
@@ -52,9 +63,9 @@ export default async function EventsPage() {
                     ) : (
                       <span className="text-xs bg-emerald-50 text-emerald-600 px-3 py-1 rounded-full">🔄 {event.credit_cost} kredi</span>
                     )}
-                    <button className="text-xs bg-emerald-600 text-white px-4 py-2 rounded-lg hover:bg-emerald-700">
+                    <Link href={`/events/${event.id}`} className="text-xs bg-emerald-600 text-white px-4 py-2 rounded-lg hover:bg-emerald-700">
                       Katıl
-                    </button>
+                    </Link>
                   </div>
                 </div>
               </div>
