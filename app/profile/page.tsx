@@ -10,7 +10,13 @@ export default function ProfilePage() {
   const [profile, setProfile] = useState<any>(null)
   const [listings, setListings] = useState<any[]>([])
   const [participations, setParticipations] = useState<any[]>([])
+  const [incomingSwaps, setIncomingSwaps] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
+
+  const handleSwapResponse = async (swapId: string, status: string) => {
+    await supabase.from('swap_requests').update({ status }).eq('id', swapId)
+    setIncomingSwaps(prev => prev.filter(s => s.id !== swapId))
+  }
 
   useEffect(() => {
     fetchData()
@@ -29,6 +35,13 @@ export default function ProfilePage() {
     const { data: parts } = await supabase.from('event_participants').select('*, events(*)').eq('user_id', user.id)
     setParticipations(parts || [])
 
+    const { data: swaps } = await supabase
+      .from('swap_requests')
+      .select('*, listings(*), sender:profiles!swap_requests_sender_id_fkey(*)')
+      .eq('receiver_id', user.id)
+      .eq('status', 'pending')
+    setIncomingSwaps(swaps || [])
+
     setLoading(false)
   }
 
@@ -44,7 +57,7 @@ export default function ProfilePage() {
         <Link href="/" className="text-xl font-medium text-emerald-800">
           swap<span className="text-emerald-500">well</span>
         </Link>
-        <Link href="/" className="text-sm text-gray-400 hover:text-gray-600">← Ana sayfa</Link>
+        <Link href="/" className="text-sm text-gray-400 hover:text-gray-600">Ana sayfa</Link>
       </nav>
 
       <div className="max-w-lg mx-auto px-6 py-6 flex flex-col gap-6">
@@ -55,7 +68,7 @@ export default function ProfilePage() {
               {profile?.full_name?.split(' ').map((n: string) => n[0]).join('') || '?'}
             </div>
             <div>
-              <h2 className="font-medium text-gray-800">{profile?.full_name || 'İsimsiz'}</h2>
+              <h2 className="font-medium text-gray-800">{profile?.full_name || 'Isimsiz'}</h2>
               <p className="text-sm text-gray-400">@{profile?.username || 'kullanici'}</p>
             </div>
             <div className="ml-auto text-center">
@@ -75,7 +88,7 @@ export default function ProfilePage() {
             )}
             {profile?.wants?.length > 0 && (
               <div className="flex-1">
-                <p className="text-xs font-medium text-gray-500 mb-2">İstiyor</p>
+                <p className="text-xs font-medium text-gray-500 mb-2">Istiyor</p>
                 <div className="flex flex-wrap gap-1">
                   {profile.wants.map((w: string) => <span key={w} className="text-xs bg-blue-50 text-blue-600 px-2 py-1 rounded-full">{w}</span>)}
                 </div>
@@ -86,7 +99,7 @@ export default function ProfilePage() {
 
         <div className="bg-white rounded-xl border border-gray-100 p-6">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="font-medium text-gray-800">İlanlarım</h3>
+            <h3 className="font-medium text-gray-800">Ilanlarim</h3>
             <Link href="/listings/create" className="text-xs text-emerald-600">+ Yeni ilan</Link>
           </div>
           {listings.length > 0 ? (
@@ -95,27 +108,60 @@ export default function ProfilePage() {
                 <div key={l.id} className="border border-gray-100 rounded-lg p-3">
                   <p className="text-sm font-medium text-gray-800 mb-1">{l.title}</p>
                   <div className="flex gap-2">
-                    <span className="text-xs bg-emerald-50 text-emerald-600 px-2 py-1 rounded-full">🎁 {l.offering}</span>
-                    <span className="text-xs bg-blue-50 text-blue-600 px-2 py-1 rounded-full">✨ {l.wanting}</span>
+                    <span className="text-xs bg-emerald-50 text-emerald-600 px-2 py-1 rounded-full">Sunuyor: {l.offering}</span>
+                    <span className="text-xs bg-blue-50 text-blue-600 px-2 py-1 rounded-full">Istiyor: {l.wanting}</span>
                   </div>
                 </div>
               ))}
             </div>
-          ) : <p className="text-sm text-gray-400 text-center py-4">Henüz ilan yok</p>}
+          ) : <p className="text-sm text-gray-400 text-center py-4">Henuz ilan yok</p>}
         </div>
 
         <div className="bg-white rounded-xl border border-gray-100 p-6">
-          <h3 className="font-medium text-gray-800 mb-4">Katıldığım etkinlikler</h3>
+          <h3 className="font-medium text-gray-800 mb-4">Katildigim etkinlikler</h3>
           {participations.length > 0 ? (
             <div className="flex flex-col gap-3">
               {participations.map((p: any) => (
                 <div key={p.id} className="border border-gray-100 rounded-lg p-3">
                   <p className="text-sm font-medium text-gray-800">{p.events?.title}</p>
-                  {p.events?.event_date && <p className="text-xs text-gray-400 mt-1">📅 {new Date(p.events.event_date).toLocaleDateString('tr-TR')}</p>}
+                  {p.events?.event_date && <p className="text-xs text-gray-400 mt-1">{new Date(p.events.event_date).toLocaleDateString('tr-TR')}</p>}
                 </div>
               ))}
             </div>
-          ) : <p className="text-sm text-gray-400 text-center py-4">Henüz etkinliğe katılmadın</p>}
+          ) : <p className="text-sm text-gray-400 text-center py-4">Henuz etkinlige katilmadin</p>}
+        </div>
+
+        <div className="bg-white rounded-xl border border-gray-100 p-6">
+          <h3 className="font-medium text-gray-800 mb-4">Gelen takas teklifleri</h3>
+          {incomingSwaps.length > 0 ? (
+            <div className="flex flex-col gap-3">
+              {incomingSwaps.map((swap: any) => (
+                <div key={swap.id} className="border border-gray-100 rounded-lg p-3">
+                  <p className="text-sm font-medium text-gray-800 mb-1">
+                    {swap.sender?.full_name || 'Bilinmeyen'} - {swap.listings?.title}
+                  </p>
+                  <div className="flex gap-2 mb-3">
+                    <span className="text-xs bg-emerald-50 text-emerald-600 px-2 py-1 rounded-full">Teklif: {swap.offering}</span>
+                  </div>
+                  {swap.message && <p className="text-xs text-gray-400 mb-3">{swap.message}</p>}
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => handleSwapResponse(swap.id, 'accepted')}
+                      className="text-xs bg-emerald-600 text-white px-4 py-2 rounded-lg hover:bg-emerald-700"
+                    >
+                      Kabul et
+                    </button>
+                    <button
+                      onClick={() => handleSwapResponse(swap.id, 'rejected')}
+                      className="text-xs border border-red-200 text-red-500 px-4 py-2 rounded-lg hover:bg-red-50"
+                    >
+                      Reddet
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : <p className="text-sm text-gray-400 text-center py-4">Henuz gelen teklif yok</p>}
         </div>
 
       </div>
