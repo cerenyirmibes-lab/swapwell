@@ -75,9 +75,9 @@ export default async function Home() {
                   )}
                   <div className="flex items-center justify-between">
                     <span className="text-xs text-gray-500">İstiyor: <strong>{listing.wanting}</strong></span>
-                    <button className="text-xs border border-emerald-300 text-emerald-600 px-3 py-1 rounded-full hover:bg-emerald-50">
-                      Takas et
-                    </button>
+                   <Link href={`/listings/${listing.id}`} className="text-xs border border-emerald-300 text-emerald-600 px-3 py-1 rounded-full hover:bg-emerald-50">
+                    Takas et
+                   </Link>
                   </div>
                 </div>
               </div>
