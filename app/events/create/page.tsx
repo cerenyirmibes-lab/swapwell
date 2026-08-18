@@ -14,13 +14,17 @@ const categories = [
 const locations = [
   '⛵ Tekne/Yat', '🏋️ Spor salonu', '🌊 Sahil', '🌿 Orman/Doğa', '🏢 Stüdyo', '☕ Kafe', '🏠 Ev', '📍 Diğer'
 ]
-
+const cities = [
+  'İstanbul', 'Ankara', 'İzmir', 'Antalya', 'Bodrum', 
+  'Fethiye', 'Muğla', 'Bursa', 'Eskişehir', 'Trabzon'
+]
 export default function CreateEventPage() {
   const router = useRouter()
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
   const [category, setCategory] = useState('')
   const [location, setLocation] = useState('')
+  const [city, setCity] = useState('')
   const [locationDetail, setLocationDetail] = useState('')
   const [date, setDate] = useState('')
   const [time, setTime] = useState('')
@@ -46,6 +50,7 @@ export default function CreateEventPage() {
       event_date: `${date}T${time}`,
       max_participants: maxParticipants,
       credit_cost: creditCost,
+      city
     })
 
     if (error) {
@@ -116,7 +121,20 @@ export default function CreateEventPage() {
               ))}
             </div>
           </div>
-
+           <div>
+  <label className="text-sm font-medium text-gray-700 mb-2 block">Şehir</label>
+  <div className="flex flex-wrap gap-2">
+    {cities.map(c => (
+      <button
+        key={c}
+        onClick={() => setCity(c)}
+        className={`text-xs px-3 py-2 rounded-full border transition-colors ${city === c ? 'bg-emerald-600 text-white border-emerald-600' : 'border-gray-200 text-gray-600 hover:border-emerald-400'}`}
+      >
+        {c}
+      </button>
+    ))}
+  </div>
+</div>
           <div>
             <label className="text-sm font-medium text-gray-700 mb-1 block">Adres / Konum detayı</label>
             <input

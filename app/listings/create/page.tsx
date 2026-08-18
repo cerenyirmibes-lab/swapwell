@@ -11,12 +11,16 @@ const categories = [
   '🚴 Bisiklet', '💃 Dans', '🥊 Boks', '🧗 Tırmanış', '🎭 Tiyatro',
   '📸 Fotoğrafçılık', '🍳 Yemek', '🧘 Meditasyon', '🎸 Gitar'
 ]
-
+const cities = [
+  'İstanbul', 'Ankara', 'İzmir', 'Antalya', 'Bodrum', 
+  'Fethiye', 'Muğla', 'Bursa', 'Eskişehir', 'Trabzon'
+]
 export default function CreateListingPage() {
   const router = useRouter()
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
   const [offering, setOffering] = useState('')
+  const [city, setCity] = useState('')
   const [wanting, setWanting] = useState('')
   const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState('')
@@ -37,7 +41,8 @@ export default function CreateListingPage() {
       description,
       offering,
       wanting,
-      type: 'swap'
+      type: 'swap',
+      city,
     })
 
     if (error) {
@@ -110,6 +115,20 @@ export default function CreateListingPage() {
             </div>
             {wanting && <p className="text-xs text-emerald-400 mt-2">Seçilen: {wanting}</p>}
           </div>
+          <div>
+  <label className="text-sm font-medium text-gray-700 mb-2 block">Şehir</label>
+  <div className="flex flex-wrap gap-2">
+    {cities.map(c => (
+      <button
+        key={c}
+        onClick={() => setCity(c)}
+        className={`text-xs px-3 py-2 rounded-full border transition-colors ${city === c ? 'bg-emerald-600 text-white border-emerald-600' : 'border-gray-200 text-gray-600 hover:border-emerald-400'}`}
+      >
+        {c}
+      </button>
+    ))}
+  </div>
+</div>
 
           {message && <p className="text-sm text-red-500">{message}</p>}
 
