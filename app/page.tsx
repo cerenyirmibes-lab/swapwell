@@ -1,5 +1,8 @@
+'use client'
+
 import Link from 'next/link'
 import { supabase } from './lib/supabase'
+import { useState, useEffect } from 'react'
 
 const categories = [
   { label: 'Tümü', emoji: '✨' },
@@ -11,11 +14,27 @@ const categories = [
   { label: 'Outdoor', emoji: '🌿' },
 ]
 
-export default async function Home() {
-  const { data: listings } = await supabase
-    .from('listings')
-    .select('*')
-    .order('created_at', { ascending: false })
+const cities = [
+  'Tümü', 'İstanbul', 'Ankara', 'İzmir', 'Antalya', 'Bodrum',
+  'Fethiye', 'Muğla', 'Bursa', 'Eskişehir', 'Trabzon'
+]
+
+export default function Home() {
+  const [listings, setListings] = useState<any[]>([])
+  const [selectedCity, setSelectedCity] = useState('Tümü')
+
+  useEffect(() => {
+    fetchListings()
+  }, [selectedCity])
+
+  const fetchListings = async () => {
+    let query = supabase.from('listings').select('*').order('created_at', { ascending: false })
+    if (selectedCity !== 'Tümü') {
+      query = query.eq('city', selectedCity)
+    }
+    const { data } = await query
+    setListings(data || [])
+  }
 
   return (
     <main className="min-h-screen bg-emerald-50">
@@ -55,13 +74,28 @@ export default async function Home() {
         ))}
       </div>
 
+      <div className="px-6 pb-2">
+        <p className="text-xs font-medium text-gray-500 mb-2">Şehir seç:</p>
+        <div className="flex gap-2 overflow-x-auto pb-2">
+          {cities.map(c => (
+            <button
+              key={c}
+              onClick={() => setSelectedCity(c)}
+              className={`flex-shrink-0 text-xs px-3 py-2 rounded-full border transition-colors ${selectedCity === c ? 'bg-emerald-600 text-white border-emerald-600' : 'border-gray-200 text-gray-600 hover:border-emerald-400 bg-white'}`}
+            >
+              {c}
+            </button>
+          ))}
+        </div>
+      </div>
+
       <div className="px-6 py-4">
         <div className="flex items-center justify-between mb-4">
           <h3 className="font-medium text-gray-800">Takas ilanları</h3>
-          <span className="text-sm text-gray-400">{listings?.length || 0} ilan</span>
+          <span className="text-sm text-gray-400">{listings.length} ilan</span>
         </div>
 
-        {listings && listings.length > 0 ? (
+        {listings.length > 0 ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {listings.map(listing => (
               <div key={listing.id} className="bg-white rounded-xl border border-gray-100 overflow-hidden hover:border-emerald-200 transition-colors">
@@ -70,14 +104,17 @@ export default async function Home() {
                 </div>
                 <div className="p-4">
                   <p className="font-medium text-gray-800 text-sm mb-1">{listing.title}</p>
+                  {listing.city && (
+                    <p className="text-xs text-gray-400 mb-1">📍 {listing.city}</p>
+                  )}
                   {listing.description && (
                     <p className="text-xs text-gray-400 mb-3 line-clamp-2">{listing.description}</p>
                   )}
                   <div className="flex items-center justify-between">
                     <span className="text-xs text-gray-500">İstiyor: <strong>{listing.wanting}</strong></span>
-                   <Link href={`/listings/${listing.id}`} className="text-xs border border-emerald-300 text-emerald-600 px-3 py-1 rounded-full hover:bg-emerald-50">
-                    Takas et
-                   </Link>
+                    <Link href={`/listings/${listing.id}`} className="text-xs border border-emerald-300 text-emerald-600 px-3 py-1 rounded-full hover:bg-emerald-50">
+                      Takas et
+                    </Link>
                   </div>
                 </div>
               </div>
@@ -86,7 +123,7 @@ export default async function Home() {
         ) : (
           <div className="text-center py-16">
             <p className="text-4xl mb-4">🌿</p>
-            <p className="text-gray-500 mb-4">Henüz ilan yok</p>
+            <p className="text-gray-500 mb-4">{selectedCity === 'Tümü' ? 'Henüz ilan yok' : `${selectedCity} için ilan yok`}</p>
             <Link href="/listings/create" className="text-sm bg-emerald-600 text-white px-6 py-3 rounded-lg hover:bg-emerald-700">
               İlk ilanı oluştur
             </Link>
