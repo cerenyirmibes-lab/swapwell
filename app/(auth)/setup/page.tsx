@@ -1,5 +1,5 @@
 'use client'
-
+import { useRef } from 'react'
 import { useState } from 'react'
 import { supabase } from '../../lib/supabase'
 import { useRouter } from 'next/navigation'
@@ -19,6 +19,10 @@ export default function SetupPage() {
   const [wants, setWants] = useState<string[]>([])
   const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState('')
+  const [avatarFile, setAvatarFile] = useState<File | null>(null)
+  const [avatarPreview, setAvatarPreview] = useState<string | null>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  
 
   const toggle = (list: string[], setList: (v: string[]) => void, item: string) => {
     if (list.includes(item)) setList(list.filter(i => i !== item))
@@ -30,15 +34,29 @@ export default function SetupPage() {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) { setMessage('Giriş yapman gerekiyor'); setLoading(false); return }
 
+    let avatarUrl = null
+    if (avatarFile) {
+      const fileExt = avatarFile.name.split('.').pop()
+      const filePath = `${user.id}.${fileExt}`
+      const { error: uploadError } = await supabase.storage
+        .from('avatars')
+        .upload(filePath, avatarFile, { upsert: true })
+      
+      if (!uploadError) {
+        const { data: urlData } = supabase.storage.from('avatars').getPublicUrl(filePath)
+        avatarUrl = urlData.publicUrl
+      }
+    }
     const { error } = await supabase.from('profiles').upsert({
-      id: user.id,
-      full_name: fullName,
-      username,
-      bio,
-      offers,
-      wants,
-      credits: 3
-    })
+  id: user.id,
+  full_name: fullName,
+  username,
+  bio,
+  offers,
+  wants,
+  credits: 3,
+  avatar_url: avatarUrl,
+})
 
     if (error) setMessage(error.message)
     else router.push('/')
@@ -50,7 +68,32 @@ export default function SetupPage() {
       <div className="max-w-lg mx-auto bg-white rounded-2xl p-8 shadow-sm">
         <h1 className="text-2xl font-medium text-emerald-800 mb-1">Profilini oluştur</h1>
         <p className="text-sm text-gray-500 mb-6">Başlamak için birkaç bilgi yeter</p>
-
+         <div className="flex flex-col items-center mb-6">
+  <div
+    onClick={() => fileInputRef.current?.click()}
+    className="w-20 h-20 rounded-full bg-emerald-100 flex items-center justify-center cursor-pointer overflow-hidden border-2 border-emerald-200 hover:border-emerald-400 transition-colors"
+  >
+    {avatarPreview ? (
+      <img src={avatarPreview} alt="avatar" className="w-full h-full object-cover" />
+    ) : (
+      <span className="text-2xl text-emerald-400">📷</span>
+    )}
+  </div>
+  <input
+    ref={fileInputRef}
+    type="file"
+    accept="image/*"
+    className="hidden"
+    onChange={e => {
+      const file = e.target.files?.[0]
+      if (file) {
+        setAvatarFile(file)
+        setAvatarPreview(URL.createObjectURL(file))
+      }
+    }}
+  />
+  <p className="text-xs text-gray-400 mt-2">Profil fotoğrafı ekle</p>
+</div>
         <input
           placeholder="Ad Soyad"
           value={fullName}
