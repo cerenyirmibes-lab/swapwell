@@ -4,7 +4,6 @@ import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { supabase } from '../../lib/supabase'
-import { emailToPhone, formatPhone } from '../../lib/phone'
 
 const categories = [
   '🏋️ Fitness', '🧘 Yoga', '🏋️ Pilates', '🎾 Tenis', '🏄 Sörf', '⛸️ Buz Pateni',
@@ -28,7 +27,6 @@ export default function SetupPage() {
   const [existingAvatarUrl, setExistingAvatarUrl] = useState<string | null>(null)
   const [avatarFile, setAvatarFile] = useState<File | null>(null)
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null)
-  const [phone, setPhone] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
@@ -39,11 +37,6 @@ export default function SetupPage() {
         router.push('/login')
         return
       }
-
-      setPhone(
-        (user.user_metadata?.phone as string | undefined) ??
-          emailToPhone(user.email)
-      )
 
       const { data: profile } = await supabase
         .from('profiles')
@@ -202,18 +195,6 @@ export default function SetupPage() {
           />
           <p className="text-xs text-gray-400 mt-2">Profil fotoğrafı ekle (en fazla 2 MB)</p>
         </div>
-
-        {phone && (
-          <div className="flex items-center justify-between bg-emerald-50 rounded-lg px-4 py-3 mb-3">
-            <div>
-              <p className="text-xs text-gray-500">Telefon</p>
-              <p className="text-sm text-emerald-800">{formatPhone(phone)}</p>
-            </div>
-            <p className="text-xs text-gray-400 max-w-[45%] text-right">
-              Giriş için kullanılır, değiştirilemez
-            </p>
-          </div>
-        )}
 
         <input
           placeholder="Ad Soyad"

@@ -5,7 +5,6 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import type { User } from '@supabase/supabase-js'
 import { supabase } from '../lib/supabase'
-import { emailToPhone, formatPhone } from '../lib/phone'
 
 type Profile = {
   id: string
@@ -39,16 +38,6 @@ type IncomingSwap = {
   message: string | null
   sender: { full_name: string | null } | null
   listings: { title: string | null } | null
-}
-
-const getPhone = (user: User | null) => {
-  if (!user) return ''
-  return (
-    (user.user_metadata?.phone as string | undefined) ??
-    emailToPhone(user.email) ??
-    user.phone ??
-    ''
-  )
 }
 
 export default function ProfilePage() {
@@ -132,6 +121,7 @@ export default function ProfilePage() {
         <div className="flex items-center gap-4">
           <Link href="/" className="text-sm text-gray-400 hover:text-gray-600">Ana sayfa</Link>
           <Link href="/setup" className="text-sm text-emerald-600 hover:text-emerald-700">Profili düzenle</Link>
+          <Link href="/reset-password" className="text-sm text-gray-400 hover:text-gray-600">Şifre değiştir</Link>
           <button
             type="button"
             onClick={handleSignOut}
@@ -160,8 +150,8 @@ export default function ProfilePage() {
             <div>
               <h2 className="font-medium text-gray-800">{profile?.full_name || 'Isimsiz'}</h2>
               <p className="text-sm text-gray-400">@{profile?.username || 'kullanici'}</p>
-              {getPhone(authUser) && (
-                <p className="text-xs text-gray-400 mt-1">{formatPhone(getPhone(authUser))}</p>
+              {authUser?.email && (
+                <p className="text-xs text-gray-400 mt-1">{authUser.email}</p>
               )}
             </div>
             <div className="ml-auto text-center">
