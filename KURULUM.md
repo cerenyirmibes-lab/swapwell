@@ -1,4 +1,4 @@
-# SwapWell Kurulum: Email Doğrulamalı Üyelik ve Şifre Sıfırlama
+# SwapWell Kurulum: Email Doğrulama Kodlu Üyelik ve Şifre Sıfırlama
 
 Proje klasörü:
 
@@ -6,14 +6,24 @@ Proje klasörü:
 cd ~/Desktop/swapwell/swapwell
 ```
 
-Akış:
+## Akış
 
-1. **Kayıt**: Email yazılır → email adresine doğrulama bağlantısı gider
-2. **Doğrulama**: Bağlantıya tıklanır → email doğrulanmış olur
-3. **Şifre oluşturma**: `/set-password` sayfasında şifre belirlenir
-4. **Profil**: Ad, kullanıcı adı, biyografi, fotoğraf → `/setup`
-5. **Giriş/çıkış**: Email + şifre ile giriş, profilden çıkış
-6. **Şifre sıfırlama**: “Şifremi unuttum” → email bağlantısı → yeni şifre
+**Kayıt**
+
+1. Email adresi yazılır
+2. Email adresine **6 haneli doğrulama kodu** gelir
+3. Kod girilir, email doğrulanır
+4. Şifre belirlenir
+5. Profil bilgileri + fotoğraf yüklenir
+6. Giriş / çıkış email + şifre ile yapılır
+
+**Şifre sıfırlama**
+
+1. Giriş sayfasında **Şifremi unuttum**
+2. **E-posta** veya **Telefon** seçilir
+3. Seçilen yere 6 haneli kod gider
+4. Kod doğrulanır
+5. Yeni şifre belirlenir ve giriş yapılır
 
 ## 1. Supabase URL ayarları (zorunlu)
 
@@ -25,19 +35,40 @@ Supabase Dashboard → **Authentication** → **URL Configuration**:
 | **Redirect URLs** | `https://swapwell.vercel.app/**` |
 | | `http://localhost:3000/**` |
 
-Bu olmadan email bağlantıları yanlış sayfaya döner. Vercel adresin farklıysa ona göre yaz.
+## 2. Email şablonuna doğrulama kodunu ekle (zorunlu)
 
-## 2. Email gönderimi için SMTP (zorunlu)
+Varsayılan Supabase maili sadece bağlantı içerir, **kod içermez**. Kodun mailde görünmesi için:
 
-Supabase'in varsayılan mail servisi **test içindir**: saatte yaklaşık 2 mail gönderir ve çoğu zaman spam'e düşer. Gerçek kullanıcılar için kendi SMTP'ni bağlamalısın.
+1. Supabase → **Authentication** → **Emails**
+2. **Magic Link** şablonunu aç
+3. İçeriği şu şekilde değiştir:
+
+```html
+<h2>SwapWell doğrulama kodun</h2>
+<p>6 haneli doğrulama kodun:</p>
+<p style="font-size: 28px; font-weight: bold; letter-spacing: 6px;">{{ .Token }}</p>
+<p>Kod 1 saat geçerlidir.</p>
+<p>Dilersen bağlantıya tıklayarak da doğrulayabilirsin:</p>
+<p><a href="{{ .ConfirmationURL }}">Email adresimi doğrula</a></p>
+```
+
+4. **Save**
+
+> `{{ .Token }}` kod, `{{ .ConfirmationURL }}` bağlantıdır. İkisini birlikte kullanabilirsin. Sadece kodu göndermek istersen bağlantı satırını silebilirsin.
+
+Bu şablon hem kayıt kodunu hem de email ile şifre sıfırlama kodunu gönderir.
+
+## 3. Email gönderimi için SMTP (zorunlu)
+
+Supabase'in varsayılan mail servisi **test içindir**: saatte yaklaşık 2 mail gönderir, çoğu zaman spam'e düşer. Gerçek kullanıcılar için kendi SMTP'ni bağla.
 
 Supabase → **Authentication** → **SMTP Settings** (bazı sürümlerde **Project Settings → Authentication → SMTP**).
 
 ### Ücretsiz seçenek A: Gmail SMTP (domain gerekmez, en kolay)
 
-1. Google hesabında **2 Adımlı Doğrulama**'yı aç.
-2. https://myaccount.google.com/apppasswords → **Uygulama şifresi** oluştur (16 karakter).
-3. Supabase SMTP ayarları:
+1. Google hesabında **2 Adımlı Doğrulama** açık olsun
+2. https://myaccount.google.com/apppasswords → **Uygulama şifresi** oluştur (16 karakter)
+3. Supabase'e gir:
 
 | Alan | Değer |
 |---|---|
@@ -48,13 +79,13 @@ Supabase → **Authentication** → **SMTP Settings** (bazı sürümlerde **Proj
 | Sender email | Aynı Gmail adresi |
 | Sender name | `SwapWell` |
 
-Gmail günde ~500 alıcıyla sınırlıdır, küçük projeler için yeterli.
+Günde ~500 mail. Küçük proje için yeterli.
 
-### Ücretsiz seçenek B: Brevo (günde 300 mail)
+### Ücretsiz seçenek B: Brevo (günde 300 mail, domain gerekmez)
 
 1. https://www.brevo.com → ücretsiz hesap
 2. **SMTP & API → SMTP** bölümünden SMTP anahtarını al
-3. Sender olarak kendi email adresini doğrula
+3. Gönderici email adresini doğrula
 4. Supabase'e gir:
 
 | Alan | Değer |
@@ -68,10 +99,6 @@ Gmail günde ~500 alıcıyla sınırlıdır, küçük projeler için yeterli.
 
 ### Ücretsiz seçenek C: Resend (ayda 3.000 mail, domain gerekir)
 
-1. https://resend.com → hesap aç → API key oluştur
-2. Kendi domainini Resend'de doğrula
-3. Supabase'e gir:
-
 | Alan | Değer |
 |---|---|
 | Host | `smtp.resend.com` |
@@ -81,11 +108,24 @@ Gmail günde ~500 alıcıyla sınırlıdır, küçük projeler için yeterli.
 | Sender email | `noreply@domainin.com` |
 | Sender name | `SwapWell` |
 
-> Domainin yoksa Gmail veya Brevo kullan.
+SMTP'yi kaydettikten sonra **Authentication → Rate Limits** bölümünde email limitini artırabilirsin (örn. saatte 30).
 
-SMTP'yi kaydettikten sonra **Authentication → Rate Limits** bölümünden email limitini ihtiyacına göre artırabilirsin (örn. saatte 30).
+## 4. Telefonla kod seçeneği hakkında (önemli)
 
-## 3. Profil ve fotoğraf için SQL
+Şifre sıfırlama ekranındaki **Telefon** seçeneği kodda hazır, ancak çalışması için:
+
+1. Supabase → **Authentication → Providers → Phone** açık olmalı
+2. **Twilio** gibi ücretli bir SMS sağlayıcısı bağlı olmalı
+3. Kullanıcının hesabında **doğrulanmış bir telefon numarası** bulunmalı
+
+Bu projede kayıt email ile yapıldığı için kullanıcıların telefon kimliği yoktur. Telefonla kod gerçekten gönderilsin istiyorsan:
+
+- Twilio hesabı açıp Supabase'e bilgileri gir (ücretli)
+- Kayıt sırasında veya profilde telefon numarası ekleme + SMS doğrulama akışını da kur
+
+Ücretsiz kalmak istiyorsan **E-posta** seçeneğini kullan; aynı işi görür.
+
+## 5. Profil ve fotoğraf için SQL
 
 1. Supabase Dashboard → **SQL Editor** → **New query**
 2. `supabase/schema.sql` dosyasının tamamını kopyala, yapıştır
@@ -98,16 +138,7 @@ Bu SQL:
 - `avatars` isimli public storage bucket'ını oluşturur
 - Kullanıcıların sadece kendi profil fotoğrafını yüklemesini sağlar
 
-## 4. Email şablonlarını Türkçeleştir (isteğe bağlı)
-
-Supabase → **Authentication** → **Emails**:
-
-- **Magic Link** → kayıt doğrulama maili
-- **Reset Password** → şifre sıfırlama maili
-
-Varsayılan şablonlar çalışır. İstersen metinleri Türkçe yapabilirsin. Bağlantı için `{{ .ConfirmationURL }}` ifadesini silme.
-
-## 5. Uygulamayı çalıştır
+## 6. Uygulamayı çalıştır
 
 ```bash
 cd ~/Desktop/swapwell/swapwell
@@ -116,49 +147,28 @@ npm run dev
 
 Tarayıcıda: `http://localhost:3000/login`
 
-## 6. Yeni akış
-
-1. `/login` → **Hesabın yok mu? Kayıt ol**
-2. Email adresini yaz → **Doğrulama bağlantısı gönder**
-3. Emaildeki bağlantıya tıkla (spam klasörüne de bak)
-4. `/set-password` sayfasında şifreni iki kez gir → **Şifreyi oluştur**
-5. `/setup` sayfasında ad soyad, kullanıcı adı, biyografi, kategoriler ve profil fotoğrafı
-6. **Devam et** → `/profile`
-7. **Çıkış yap** ile oturumu kapat
-8. Tekrar giriş: email + şifre
-
-### Şifre sıfırlama
-
-1. `/login` → **Şifremi unuttum**
-2. Email adresini yaz → **Sıfırlama bağlantısı gönder**
-3. Emaildeki bağlantıya tıkla
-4. `/reset-password` sayfasında yeni şifreyi belirle
-5. Profil sayfasına yönlendirilir
-
-Giriş yapmış kullanıcılar profil sayfasındaki **Şifre değiştir** bağlantısından da şifresini güncelleyebilir.
-
-## 7. Değişen dosyalar
+## 7. Sayfalar ve görevleri
 
 | Dosya | Görev |
 |---|---|
-| `app/(auth)/login/page.tsx` | Email + şifre girişi, onay maili tekrar gönderme |
-| `app/(auth)/signup/page.tsx` | Email yaz → doğrulama bağlantısı gönder |
-| `app/(auth)/forgot-password/page.tsx` | Şifre sıfırlama bağlantısı gönder |
-| `app/(auth)/set-password/page.tsx` | Doğrulama sonrası şifre oluşturma |
-| `app/(auth)/reset-password/page.tsx` | Şifre sıfırlama / şifre değiştirme |
-| `app/(auth)/password-form.tsx` | İki sayfanın ortak şifre formu ve oturum kontrolü |
+| `app/(auth)/login/page.tsx` | Email + şifre girişi, “Şifremi unuttum”, onay kodu tekrar gönderme |
+| `app/(auth)/signup/page.tsx` | Email → 6 haneli kod → şifre oluşturma (3 adım) |
+| `app/(auth)/forgot-password/page.tsx` | E-posta veya telefon seçimi → kod → yeni şifre |
+| `app/(auth)/set-password/page.tsx` | Maildeki bağlantıya tıklayanlar için şifre oluşturma |
+| `app/(auth)/reset-password/page.tsx` | Giriş yapmış kullanıcı için şifre değiştirme |
+| `app/(auth)/password-form.tsx` | Şifre formu ve oturum kontrolü |
 | `app/(auth)/setup/page.tsx` | Profil bilgileri + fotoğraf yükleme (max 2 MB) |
 | `app/profile/page.tsx` | Profil görünümü, düzenleme, şifre değiştirme, çıkış |
 | `app/lib/auth-errors.ts` | Türkçe hata mesajları |
+| `app/lib/phone.ts` | Telefon numarası normalize/biçimlendirme |
 | `supabase/schema.sql` | Profil tablosu, RLS, `avatars` bucket'ı |
-| `KURULUM.md` | Bu dosya |
 
 ## 8. Yayına alma
 
 ```bash
 cd ~/Desktop/swapwell/swapwell
-git add 'app/(auth)' app/profile/page.tsx app/lib/auth-errors.ts supabase/schema.sql KURULUM.md
-git commit -m "feat: email verification signup, password set and reset"
+git add 'app/(auth)' app/profile/page.tsx app/lib supabase/schema.sql KURULUM.md
+git commit -m "feat: email otp signup, password reset via email or phone"
 git push
 ```
 
@@ -166,16 +176,11 @@ Vercel `main` branch'ine push edince otomatik deploy eder.
 
 ## 9. Sorun giderme
 
-- **Mail hiç gelmiyor**: SMTP kurulmamış olabilir. Supabase'in varsayılan servisi saatte ~2 mail atar. Bölüm 2'yi uygula, spam klasörüne bak.
-- **“Email gönderim limiti doldu”**: Aynı sebep. SMTP kur veya bir süre bekle.
-- **Bağlantıya tıklayınca hata / yanlış sayfa**: Authentication → URL Configuration'daki Redirect URLs listesinde `http://localhost:3000/**` ve canlı adresin `/**` hâli olmalı.
-- **“Bağlantı geçersiz veya süresi dolmuş”**: Link tek kullanımlık ve sürelidir. Kayıt sayfasından yeni link iste.
-- **“Email adresin henüz onaylanmadı”**: Kayıt mailindeki bağlantıya tıklanmamış. Giriş ekranındaki **Doğrulama bağlantısını tekrar gönder** butonunu kullan.
-- **Fotoğraf yüklenemiyor**: `supabase/schema.sql` çalıştırıldı mı, `avatars` bucket'ı public mi kontrol et. Dosya en fazla 2 MB.
+- **Mailde kod yok, sadece link var**: Bölüm 2'yi uygula; Magic Link şablonunda `{{ .Token }}` olmalı.
+- **Mail hiç gelmiyor**: SMTP kurulmamış olabilir. Varsayılan servis saatte ~2 mail atar. Bölüm 3'ü uygula, spam klasörüne bak.
+- **“Email gönderim limiti doldu”**: Aynı sebep. SMTP kur veya bekle.
+- **“Kod geçersiz veya süresi dolmuş”**: Kod tek kullanımlık ve sürelidir. “Kodu tekrar gönder” ile yeni kod al.
+- **Telefona kod gelmiyor**: Phone sağlayıcısı + Twilio kurulu değil veya hesapta telefon kimliği yok. Bölüm 4'e bak; email seçeneğini kullan.
+- **Bağlantı yanlış sayfaya dönüyor**: Authentication → URL Configuration'daki Redirect URLs listesini kontrol et.
+- **Fotoğraf yüklenemiyor**: `supabase/schema.sql` çalıştırıldı mı, `avatars` bucket'ı public mi? Dosya en fazla 2 MB.
 - **Profil kaydedilmiyor**: SQL Editor'de RLS politikalarının oluştuğunu kontrol et.
-
-## Notlar
-
-- Email doğrulaması Supabase tarafından yapılır; kod tarafında ek bir doğrulama gerekmez.
-- Şifre sıfırlama bağlantısı da tek kullanımlıktır ve belirli bir süre sonra geçersiz olur.
-- Telefon numarası artık giriş için kullanılmıyor; profil sayfasında email adresi gösterilir.

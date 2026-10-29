@@ -82,7 +82,7 @@ export default function LoginPage() {
         setMessage({ text: getAuthErrorMessage(error), kind: 'error' })
       } else {
         setMessage({
-          text: 'Doğrulama bağlantısı tekrar gönderildi. Gelen kutunu ve spam klasörünü kontrol et.',
+          text: 'Doğrulama kodu tekrar gönderildi. Gelen kutunu ve spam klasörünü kontrol et.',
           kind: 'success',
         })
         setNeedsConfirmation(false)
@@ -150,7 +150,7 @@ export default function LoginPage() {
             disabled={loading}
             className="w-full text-emerald-700 underline text-sm mb-4 disabled:opacity-50"
           >
-            Doğrulama bağlantısını tekrar gönder
+            Doğrulama kodunu tekrar gönder
           </button>
         )}
 
