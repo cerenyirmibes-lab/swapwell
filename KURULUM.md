@@ -64,7 +64,32 @@ Supabase'in varsayılan mail servisi **test içindir**: saatte yaklaşık 2 mail
 
 Supabase → **Authentication** → **SMTP Settings** (bazı sürümlerde **Project Settings → Authentication → SMTP**).
 
-### Ücretsiz seçenek A: Gmail SMTP (domain gerekmez, en kolay)
+### Ücretsiz seçenek A: Brevo (günde 300 mail, domain gerekmez) ⭐ önerilen
+
+Deneme için en uygun seçenek: ücretsiz, domain almadan çalışır, günde 300 mail.
+
+1. https://www.brevo.com → **Sign up free**
+2. **Senders, Domains & IPs → Senders** → **Add a sender**
+   - Kendi Gmail adresini yaz (örn. `swapwell.app@gmail.com`)
+   - Brevo o adrese doğrulama maili atar, içindeki bağlantıya tıkla
+3. **SMTP & API → SMTP** sekmesi → **Generate a new SMTP key**
+   - Key'i kopyala (bir daha gösterilmez)
+4. Supabase → **Authentication → SMTP Settings** → **Enable custom SMTP**:
+
+| Alan | Değer |
+|---|---|
+| Host | `smtp-relay.brevo.com` |
+| Port | `587` |
+| Username | Brevo hesabına kayıtlı email |
+| Password | Ürettiğin SMTP key |
+| Sender email | Brevo'da doğruladığın adres |
+| Sender name | `SwapWell` |
+
+5. **Save**
+
+> Brevo günde 300 mail gönderir (~9.000/ay). Yeni hesaplarda günlük limit bazen 300 yerine 100 olarak başlar; panelde **Statistics** altında kalan hakkı görebilirsin.
+
+### Ücretsiz seçenek B: Gmail SMTP (en hızlı ama sınırlı)
 
 1. Google hesabında **2 Adımlı Doğrulama** açık olsun
 2. https://myaccount.google.com/apppasswords → **Uygulama şifresi** oluştur (16 karakter)
@@ -79,23 +104,7 @@ Supabase → **Authentication** → **SMTP Settings** (bazı sürümlerde **Proj
 | Sender email | Aynı Gmail adresi |
 | Sender name | `SwapWell` |
 
-Günde ~500 mail. Küçük proje için yeterli.
-
-### Ücretsiz seçenek B: Brevo (günde 300 mail, domain gerekmez)
-
-1. https://www.brevo.com → ücretsiz hesap
-2. **SMTP & API → SMTP** bölümünden SMTP anahtarını al
-3. Gönderici email adresini doğrula
-4. Supabase'e gir:
-
-| Alan | Değer |
-|---|---|
-| Host | `smtp-relay.brevo.com` |
-| Port | `587` |
-| Username | Brevo hesap emailin |
-| Password | Brevo SMTP anahtarı |
-| Sender email | Doğruladığın adres |
-| Sender name | `SwapWell` |
+Günde ~500 alıcı. Toplu gönderime uygun değil, spam riski yüksek; sadece hızlı test için.
 
 ### Ücretsiz seçenek C: Resend (ayda 3.000 mail, domain gerekir)
 
@@ -108,7 +117,31 @@ Günde ~500 mail. Küçük proje için yeterli.
 | Sender email | `noreply@domainin.com` |
 | Sender name | `SwapWell` |
 
-SMTP'yi kaydettikten sonra **Authentication → Rate Limits** bölümünde email limitini artırabilirsin (örn. saatte 30).
+### Limitleri birbirine uydur (önemli)
+
+Üç ayrı limit var, karıştırılınca "limit doldu" hatası devam eder:
+
+| Yer | Ayar | Öneri |
+|---|---|---|
+| Supabase → Authentication → Rate Limits | **Emails per hour** | `30` (Brevo ücretsizken) |
+| Brevo | Günlük gönderim | `300` (ücretsiz plan) |
+| Supabase | Varsayılan limit | `2/saat` → SMTP bağlanınca anlamsız kalır |
+
+> Supabase limitini Brevo kotasından yükseğe çekme. 100/saat yaparsan Brevo'nun 300/gün hakkı 3 saatte biter. Trafik artınca Brevo'da ücretli plana geç, sonra Supabase limitini yükselt.
+
+### Mail gönderimini terminalden test et
+
+Tarayıcıyı açmadan SMTP'nin gerçekten çalıştığını kontrol eder:
+
+```bash
+cd ~/Desktop/swapwell/swapwell
+npm run mail:test -- senin@email.com
+```
+
+- `✅ İstek kabul edildi` → mail yola çıktı, gelen kutusu + spam klasörüne bak
+- `❌ ... over_email_send_rate_limit` → SMTP kaydedilmemiş veya limit düşük
+- `❌ ... otp_disabled` → Authentication → Providers → Email kapalı
+- Kod mailde görünmüyorsa → Bölüm 2'deki `{{ .Token }}` şablonu eksik
 
 ## 4. Telefonla kod seçeneği hakkında (önemli)
 

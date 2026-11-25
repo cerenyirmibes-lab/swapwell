@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { supabase } from '../../lib/supabase'
 import { getAuthErrorMessage } from '../../lib/auth-errors'
+import { isProfileComplete } from '../../lib/profile'
 
 type MessageKind = 'error' | 'success' | 'info'
 
@@ -44,11 +45,11 @@ export default function LoginPage() {
       if (data.user) {
         const { data: profile } = await supabase
           .from('profiles')
-          .select('id')
+          .select('id, full_name, username, avatar_url, phone')
           .eq('id', data.user.id)
           .maybeSingle()
 
-        router.push(profile ? '/profile' : '/setup')
+        router.push(isProfileComplete(profile) ? '/profile' : '/setup')
       }
     } catch (error) {
       setMessage({
@@ -58,35 +59,6 @@ export default function LoginPage() {
             : 'Beklenmeyen bir hata oluştu. Lütfen tekrar dene.',
         kind: 'error',
       })
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const handleResendConfirmation = async () => {
-    if (loading || !cleanEmail) return
-
-    setLoading(true)
-    setMessage(null)
-
-    try {
-      const { error } = await supabase.auth.signInWithOtp({
-        email: cleanEmail,
-        options: {
-          shouldCreateUser: false,
-          emailRedirectTo: `${window.location.origin}/set-password`,
-        },
-      })
-
-      if (error) {
-        setMessage({ text: getAuthErrorMessage(error), kind: 'error' })
-      } else {
-        setMessage({
-          text: 'Doğrulama kodu tekrar gönderildi. Gelen kutunu ve spam klasörünü kontrol et.',
-          kind: 'success',
-        })
-        setNeedsConfirmation(false)
-      }
     } finally {
       setLoading(false)
     }
@@ -144,14 +116,12 @@ export default function LoginPage() {
         )}
 
         {needsConfirmation && (
-          <button
-            type="button"
-            onClick={handleResendConfirmation}
-            disabled={loading}
-            className="w-full text-emerald-700 underline text-sm mb-4 disabled:opacity-50"
+          <Link
+            href="/signup"
+            className="block w-full text-center text-emerald-700 underline text-sm mb-4"
           >
-            Doğrulama kodunu tekrar gönder
-          </button>
+            Emailini kodla doğrulamak için kayıt ekranına git
+          </Link>
         )}
 
         <button

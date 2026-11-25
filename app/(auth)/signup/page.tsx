@@ -5,8 +5,11 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { supabase } from '../../lib/supabase'
 import { getAuthErrorMessage } from '../../lib/auth-errors'
+import { isProfileComplete } from '../../lib/profile'
 
 type Step = 'email' | 'code' | 'password'
+
+const CODE_LENGTH = 8
 
 export default function SignupPage() {
   const router = useRouter()
@@ -40,8 +43,6 @@ export default function SignupPage() {
         email: cleanEmail,
         options: {
           shouldCreateUser: true,
-          // Maildeki bağlantıya tıklayanlar da şifre oluşturabilsin
-          emailRedirectTo: `${window.location.origin}/set-password`,
         },
       })
 
@@ -50,7 +51,7 @@ export default function SignupPage() {
       } else {
         setStep('code')
         setCooldown(60)
-        setInfo('Email adresine 6 haneli doğrulama kodu gönderdik.')
+        setInfo(`Email adresine ${CODE_LENGTH} haneli doğrulama kodu gönderdik.`)
       }
     } catch (err) {
       setError(
@@ -66,8 +67,8 @@ export default function SignupPage() {
   const verifyCode = async () => {
     if (loading) return
 
-    if (token.length !== 6) {
-      setError('Kodu 6 haneli olarak gir.')
+    if (token.length !== CODE_LENGTH) {
+      setError(`Kodu ${CODE_LENGTH} haneli olarak gir.`)
       return
     }
 
@@ -76,11 +77,23 @@ export default function SignupPage() {
     setInfo('')
 
     try {
-      const { data, error } = await supabase.auth.verifyOtp({
-        email: cleanEmail,
-        token,
-        type: 'email',
-      })
+      let { data, error } = await supabase.auth.verifyOtp({
+  email: cleanEmail,
+  token,
+  type: 'email',
+})
+
+if (error) {
+  const retry = await supabase.auth.verifyOtp({
+    email: cleanEmail,
+    token,
+    type: 'signup',
+  })
+  if (!retry.error) {
+    data = retry.data
+    error = null
+  }
+}
 
       if (error) {
         setError(getAuthErrorMessage(error))
@@ -100,7 +113,7 @@ export default function SignupPage() {
       setLoading(false)
     }
   }
-
+     console.log('OTP hatası:', error)
   const savePassword = async () => {
     if (loading) return
 
@@ -134,11 +147,11 @@ export default function SignupPage() {
 
       const { data: profile } = await supabase
         .from('profiles')
-        .select('id')
+        .select('id, full_name, username, avatar_url, phone')
         .eq('id', user.id)
         .maybeSingle()
 
-      router.push(profile ? '/profile' : '/setup')
+      router.push(isProfileComplete(profile) ? '/profile' : '/setup')
     } catch (err) {
       setError(
         err instanceof Error
@@ -165,7 +178,7 @@ export default function SignupPage() {
             {step === 'email'
               ? 'Email adresini yaz, doğrulama kodunu gönderelim'
               : step === 'code'
-                ? `${cleanEmail} adresine gelen 6 haneli kodu gir`
+                ? `${cleanEmail} adresine gelen ${CODE_LENGTH} haneli kodu gir`
                 : 'Emailin doğrulandı. Giriş için bir şifre belirle'}
           </p>
         </div>
@@ -193,10 +206,10 @@ export default function SignupPage() {
               type="text"
               inputMode="numeric"
               autoComplete="one-time-code"
-              maxLength={6}
-              placeholder="6 haneli kod"
+              maxLength={CODE_LENGTH}
+              placeholder={`${CODE_LENGTH} haneli kod`}
               value={token}
-              onChange={e => setToken(e.target.value.replace(/\D/g, '').slice(0, 6))}
+              onChange={e => setToken(e.target.value.replace(/\D/g, '').slice(0, CODE_LENGTH))}
               onKeyDown={e => e.key === 'Enter' && verifyCode()}
               className="w-full border border-gray-200 rounded-lg px-4 py-3 text-sm mb-3 tracking-[0.4em] text-center outline-none focus:border-emerald-400"
             />
@@ -247,7 +260,7 @@ export default function SignupPage() {
             <button
               type="button"
               onClick={verifyCode}
-              disabled={loading || token.length !== 6}
+              disabled={loading || token.length !== CODE_LENGTH}
               className="w-full bg-emerald-600 text-white rounded-lg py-3 text-sm font-medium hover:bg-emerald-700 disabled:opacity-50 transition-colors"
             >
               {loading ? 'Doğrulanıyor...' : 'Kodu doğrula'}

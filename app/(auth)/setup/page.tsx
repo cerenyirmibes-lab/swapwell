@@ -18,6 +18,7 @@ export default function SetupPage() {
   const [fullName, setFullName] = useState('')
   const [username, setUsername] = useState('')
   const [bio, setBio] = useState('')
+  const [phone, setPhone] = useState('')
   const [offers, setOffers] = useState<string[]>([])
   const [wants, setWants] = useState<string[]>([])
   const [loading, setLoading] = useState(true)
@@ -49,6 +50,7 @@ export default function SetupPage() {
         setFullName(profile.full_name || '')
         setUsername(profile.username || '')
         setBio(profile.bio || '')
+        setPhone(profile.phone || '')
         setOffers(profile.offers || [])
         setWants(profile.wants || [])
         setExistingAvatarUrl(profile.avatar_url || null)
@@ -86,6 +88,16 @@ export default function SetupPage() {
 
   const handleSave = async () => {
     if (saving) return
+
+    if (!avatarFile && !existingAvatarUrl) {
+      setMessage('Profil fotoğrafı zorunlu.')
+      return
+    }
+
+    if (phone.replace(/\D/g, '').length < 10) {
+      setMessage('Geçerli bir telefon numarası gir (iletişim için zorunlu).')
+      return
+    }
 
     setSaving(true)
     setMessage('')
@@ -129,6 +141,7 @@ export default function SetupPage() {
         full_name: fullName.trim(),
         username: username.replace(/^@/, '').trim(),
         bio: bio.trim(),
+        phone: phone.trim(),
         offers,
         wants,
         avatar_url: avatarUrl,
@@ -172,7 +185,7 @@ export default function SetupPage() {
         <p className="text-sm text-gray-500 mb-6">
           {hasProfile
             ? 'Bilgilerini güncelleyip kaydedebilirsin'
-            : 'Başlamak için birkaç bilgi ve bir profil fotoğrafı yeter'}
+            : 'İlan verebilmek için profil fotoğrafı ve telefon numarası zorunludur'}
         </p>
 
         <div className="flex flex-col items-center mb-6">
@@ -193,17 +206,17 @@ export default function SetupPage() {
             className="hidden"
             onChange={e => handleAvatarChange(e.target.files?.[0])}
           />
-          <p className="text-xs text-gray-400 mt-2">Profil fotoğrafı ekle (en fazla 2 MB)</p>
+          <p className="text-xs text-gray-400 mt-2">Profil fotoğrafı ekle * (en fazla 2 MB)</p>
         </div>
 
         <input
-          placeholder="Ad Soyad"
+          placeholder="Ad Soyad *"
           value={fullName}
           onChange={e => setFullName(e.target.value)}
           className="w-full border border-gray-200 rounded-lg px-4 py-3 text-sm mb-3 outline-none focus:border-emerald-400"
         />
         <input
-          placeholder="Kullanıcı adı (@)"
+          placeholder="Kullanıcı adı (@) *"
           value={username}
           onChange={e => setUsername(e.target.value)}
           className="w-full border border-gray-200 rounded-lg px-4 py-3 text-sm mb-3 outline-none focus:border-emerald-400"
@@ -212,7 +225,15 @@ export default function SetupPage() {
           placeholder="Kendinden kısaca bahset..."
           value={bio}
           onChange={e => setBio(e.target.value)}
-          className="w-full border border-gray-200 rounded-lg px-4 py-3 text-sm mb-6 outline-none focus:border-emerald-400 resize-none h-20"
+          className="w-full border border-gray-200 rounded-lg px-4 py-3 text-sm mb-3 outline-none focus:border-emerald-400 resize-none h-20"
+        />
+        <input
+          type="tel"
+          inputMode="tel"
+          placeholder="Telefon (takas için iletişim) *"
+          value={phone}
+          onChange={e => setPhone(e.target.value)}
+          className="w-full border border-gray-200 rounded-lg px-4 py-3 text-sm mb-6 outline-none focus:border-emerald-400"
         />
 
         <p className="text-sm font-medium text-gray-700 mb-3">Ne sunuyorsun? 🎁</p>
@@ -256,7 +277,13 @@ export default function SetupPage() {
         <button
           type="button"
           onClick={handleSave}
-          disabled={saving || !fullName.trim() || !username.trim()}
+          disabled={
+            saving ||
+            !fullName.trim() ||
+            !username.trim() ||
+            !phone.trim() ||
+            (!avatarFile && !existingAvatarUrl)
+          }
           className="w-full bg-emerald-600 text-white rounded-lg py-3 text-sm font-medium hover:bg-emerald-700 disabled:opacity-50 transition-colors"
         >
           {saving ? 'Kaydediliyor...' : hasProfile ? 'Değişiklikleri kaydet' : 'Devam et →'}

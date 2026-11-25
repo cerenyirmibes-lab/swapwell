@@ -47,7 +47,7 @@ export const getAuthErrorMessage = (error: AuthError, context?: 'email' | 'phone
     message.includes('too many requests') ||
     code === 'over_email_send_rate_limit'
   ) {
-    return 'Email gönderim limiti doldu. Supabase’de özel SMTP kurulu değilse saatte sadece birkaç mail gönderilebilir. Biraz bekleyip tekrar dene.'
+    return 'Email gönderim limiti doldu. Supabase’in varsayılan mail servisi saatte yalnızca birkaç mail gönderir. Authentication → SMTP Settings bölümünden kendi SMTP’ni bağla (Gmail/Brevo) ve Authentication → Rate Limits’ten email limitini artır. Geçici çözüm: 1 saat beklemek.'
   }
 
   if (
